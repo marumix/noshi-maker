@@ -37,7 +37,7 @@ PAPER_SIZES = {
     "美濃版  (394×267mm)": (394, 267),
     "半紙版  (337×245mm)": (337, 245),
     "切手版  (260×185mm)": (260, 185),
-    "豆のし  (195×145mm)": (195, 145),
+    "豆のし  (227×127mm)": (227, 127),
 }
 PRINT_DPI = 300
 
@@ -47,7 +47,7 @@ DEFAULTS = {
     "表書き": (0.50, 0.22, 0.082),   # ①中央・少し上・22mm
     "社名":   (0.50, 0.70, 0.071),   # ②中央・少し下・19mm
     "役職":   (0.40, 0.67, 0.041),   # ③社名の左・社名の1/3から・11mm
-    "氏名":   (0.29, 0.75, 0.071),   # ④役職の左・社名より一文字下から・19mm
+    "氏名":   (0.50, 0.75, 0.071),   # ④デフォルトは中央・社名/役職があれば左に自動移動
 }
 
 MIZUHIKI_Y_FRAC = 0.45   # 水引の縦位置（プレビュー用）
@@ -508,6 +508,9 @@ class NoshiApp:
                     self.name, self.paper_size, self.font_name, self.char_spacing):
             var.trace_add("write", lambda *_: self._schedule_render())
 
+        self.company.trace_add("write", self._update_name_position)
+        self.position.trace_add("write", self._update_name_position)
+
         self.size_mm_var.trace_add("write", self._on_size_spin_changed)
         root.bind("<Configure>", lambda e: self._schedule_render())
 
@@ -793,9 +796,17 @@ class NoshiApp:
         w_mm, h_mm = PAPER_SIZES[self.paper_size.get()]
         self.icanvas.render_all(w_mm, h_mm)
 
+    def _update_name_position(self, *_):
+        name_elem = next(e for e in self.elements if e.label == "氏名")
+        if self.company.get() or self.position.get():
+            name_elem.x_frac = 0.29
+        else:
+            name_elem.x_frac = 0.50
+
     def _reset_positions(self):
         for elem in self.elements:
             elem.reset()
+        self._update_name_position()
         self._redraw()
 
     # ── 印刷用画像生成（水引なし） ────────────────────
